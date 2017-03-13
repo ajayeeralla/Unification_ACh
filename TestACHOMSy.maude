@@ -1,0 +1,1001 @@
+*************START*****************************
+************************************************
+
+mod Unif is
+pr META-LEVEL .
+pr INT .
+pr NAT .
+pr CONVERSION .
+pr STRING .
+vars V V1 V2 V3 V4 V5 V6 : Variable .
+vars T T1 T2 T3 T4 T5 T6 : Term .
+var C  C1 : Constant .
+vars VA VA1 VA2 VA3 : Varassign .
+vars VAL VAL1 VAL2 VAL3 : VarassignList .
+vars SB SB1 SB2 SB3 SB4 SB5 SB6 : Substitution .
+vars UdPr UdPr1 UdPr2 UdPr3 : UnificandPair .
+vars UnPr UnPr1 UnPr2 UnPr3 : UnificationProblem .
+vars QI QI1 QI2 QI3 : Qid .
+vars TL TL1 TL2 TL3 TL4 TL5 : TermList .
+vars TY TY1 TY2 TY3 TY4 : Type .
+var N N1 N2 N3 N4 N5 N6 : Nat .
+vars AS AS1 As2 : Assignment .
+vars ASL ASL1 ASL2 : AssignmentList .
+vars E E1 : empty .
+
+***********sort empty **************************
+************************************************
+
+sort empty .
+subsort empty < Term .
+
+*********Function Symbols **********************
+************************************************
+
+*****op P : Term Term -> Term [ctor assoc comm ] .
+
+*********Since we apply AC unification***********
+******** So h:Nat -> Nat*************************
+
+***op h : Nat -> Nat [ctor iter] .
+***op h : NzNat -> Nat [ditto] .
+
+*** IsVar to Check if Term is a variable *******
+************************************************
+	op IsVar : Term -> Bool .
+        eq IsVar(V) = true .
+        eq IsVar(T) = false [owise] .
+
+***** Assignment Definition *******************
+***********************************************
+sort AssignmentList .
+subsort Assignment < AssignmentList .
+sort VariableAssign .
+op _ <- _ : Variable Term -> Assignment [ctor prec 63 format (nt d d d)] .
+op fail : -> Assignment .
+
+**************Substitute in Term or TermList ************
+*********************************************************
+
+op Substitute : Term Substitution -> Term .
+op Substitute : TermList Substitution -> TermList .
+eq Substitute(T, none) = T .
+eq Substitute(V, ((V <- T) ; SB) ) = T .
+ceq Substitute(V, ((V1 <- T) ; SB) ) = V if V =/= V1 .
+eq Substitute(C, SB) = C .
+eq Substitute(T , fail ) = T .
+eq Substitute(QI1[TL] , SB) = QI1[Substitute(TL , SB)] .
+eq Substitute(_+_(T, T1) , SB) = _+_(Substitute(T, SB), Substitute(T1,SB)) .
+eq Substitute(TL, none) = TL .
+eq Substitute(TL, fail) = TL .
+eq Substitute((T,TL1), SB) = (Substitute(T, SB), Substitute(TL1, SB)) .
+eq Substitute(empty, SB) = empty .
+
+************************************************************
+************************************************************
+ 
+************Substitute in substituion *******************
+*********************************************************
+
+op Substitute : Substitution Substitution -> Substitution .
+eq Substitute((V <- T ; SB), SB1) = (V <- (Substitute(T,SB1)) ; Substitute(SB, SB1)) .
+eq Substitute(SB , none) = SB .
+ceq Substitute(SB1 , SB) = SB1 if SB1 == none .
+eq Substitute((V <- V1 ; SB), ((V <- T); SB1)) = Substitute(SB, (V <- T ; V1 <- T ; SB1)) .
+eq Substitute(fail, SB) = fail .
+eq Substitute(SB, fail) = fail [owise] .
+
+************Substitute in UnificaitonProblem ************
+*********************************************************
+
+op Substitute : UnificationProblem Substitution -> UnificationProblem .
+eq Substitute( T =? T1 /\ UnPr, SB) = ( Substitute(T , SB)  =? Substitute(T1 , SB)) /\ Substitute( UnPr , SB) .
+eq Substitute( T =? T1 , SB) = ( Substitute(T , SB)  =? Substitute(T1 , SB)) .
+eq Substitute( UnPr , none ) = UnPr .
+eq Substitute( EmptyEq , SB) = EmptyEq .
+
+***********SubstitutionList************************
+***************************************************
+	
+	sorts SubstitutionList NeSubstitutionList . ***Collection of all substitutions 	
+	subsort Substitution < SubstitutionList .
+	subsort Substitution < NeSubstitutionList .
+	subsort AssignmentList < SubstitutionList .
+	subsort AssignmentList < NeSubstitutionList .
+	subsort NeSubstitutionList < SubstitutionList .
+	vars SL SL1 SL2 : SubstitutionList .
+	vars NSL NSL1 NSL2 : NeSubstitutionList .
+	op _&&&&_ : SubstitutionList SubstitutionList -> SubstitutionList [ctor assoc id: EmptySubstitution gather (e E) format (i nt nt d) ] .
+	op _&&&&_ : NeSubstitutionList SubstitutionList -> NeSubstitutionList [ctor ditto] .
+	op _&&&&_ : SubstitutionList NeSubstitutionList -> NeSubstitutionList [ctor ditto] .
+	op _&&&&_ : Substitution Substitution -> NeSubstitutionList [ctor ditto] .
+	op EmptySubstitution : -> SubstitutionList . 
+	eq SB &&&& SB = SB .
+        eq none &&&& SB = SB .
+	eq (SB &&&& SL1 &&&& SB) = (SB &&&& SL1) . ***Idemponent
+	***eq SB ### fail = SB . ****not fail until all banches fail.
+	***eq fail ### SB = SB .
+	****( s++r s++b nt++r++nt s)
+	
+	
+*********************************************************
+*********************************************************
+***********UnificationProblemList************************
+*********************************************************
+	
+	sorts NeUnificationProblemList UnificationProblemList .
+	subsort UnificationProblem < UnificationProblemList .
+	subsort NeUnificationProblemList < UnificationProblemList .
+	subsort UnificationProblem < NeUnificationProblemList .
+	vars UnPrL UnPrL1 UnPrL2 : UnificationProblemList .
+	vars NUnPrL NUnPrL1 NUnPrL2 : NeUnificationProblemList . 
+	op _$$_ : UnificationProblemList UnificationProblemList -> UnificationProblemList [ctor assoc comm prec 73] .
+	op _$$_ : NeUnificationProblemList UnificationProblemList -> NeUnificationProblemList [ctor ditto] .
+	op _$$_ : UnificationProblemList NeUnificationProblemList -> NeUnificationProblemList [ctor ditto] .
+	eq (FailEquation $$ NUnPrL) = NUnPrL .
+        eq NUnPrL $$ FailEquation = NUnPrL .
+	eq (UnPr $$ UnPrL1 $$ UnPr) = UnPr $$ UnPrL1 . ***idempotent.
+	eq (UnPrL $$ EmptyEq ) = UnPrL .
+	eq (EmptyEq $$ UnPrL) = UnPrL .
+	
+****************************************
+*****Getting the substitutionList*******
+****************************************
+
+
+	op gUnify : UnificationProblemList SubstitutionList UnificationProblemList Nat VarassignList Nat Nat -> SubstitutionList .
+	eq gUnify( UnPr $$ UnPrL , SL1 , UnPrL1 , N , VAL , N1 , N5 ) = gUnify( UnPr , SL1 , UnPrL1 , N , VAL , N1 , N5) &&&& gUnify( UnPrL , SL1 , UnPrL1 , N , VAL , N1 , N5 ) .
+	***if CheckVinUnPr( UnPr ) =/= false .
+	eq gUnify( UnPr , SL1 , UnPrL1 , N , VAL , N1 , N5 ) = gUnify( UnPr , SL1 , UnPrL1 , N , VAL , N1 , N5 ) [owise] .
+	eq gUnify( EmptyEq , SL1 , UnPrL1 , N , VAL , N1 , N5 ) = EmptySubstitution .
+	eq gUnify( FailEquation , SL1 , UnPrL1 , N , VAL , N1 , N5 ) = fail .
+	***eq gUnify ( UnPr, SL1 , N , VAL , N1 , N5 ) = SL1 .
+	op getUnPrL : UnificationProblemList SubstitutionList UnificationProblemList Nat VarassignList Nat Nat -> UnificationProblemList .
+	
+**********UnificandPair , UnificaitonProblem *********
+******************************************************
+
+	subsort UnificandPair < UnificationProblem .
+	op _=?_ : Term Term -> UnificandPair [ctor prec 71] .
+	op _/\_ : UnificationProblem UnificationProblem -> UnificationProblem [ctor assoc comm prec 73] .
+	op EmptyEq : -> UnificationProblem [ctor] .
+	op EmptyUnificandPair : -> UnificandPair .
+	op FailEquation : -> UnificationProblem .
+	eq EmptyEq /\ UnPr = UnPr . 
+	eq UnPr /\ EmptyEq = UnPr .
+	eq EmptyUnificandPair /\ UnPr = UnPr .
+	eq UnPr /\ EmptyUnificandPair = UnPr .
+
+*******idemponent--remove duplicates in UnificaitonProblem*************
+***********************************************************************
+
+	eq UdPr /\ UdPr = UdPr .
+
+***********Varassign-datastructure to store variable values ************************
+************************************************************************************
+
+	sorts Varassign VarassignList .
+	subsort Varassign < VarassignList .
+	op Empty : -> VarassignList .
+	op (_ , _) : Variable Nat -> Varassign . 
+	op  _\/_ : VarassignList VarassignList -> VarassignList [ctor assoc comm prec 73 ] .
+	op Assign : VarassignList Nat -> VarassignList .
+	eq Assign((V , N1) , N) = (V , N) .
+	eq Assign( ((V , N1) \/ VAL) , N)  = ((V, N) \/ Assign(VAL , N) ) .
+	eq Empty \/ Empty = Empty .
+	eq Empty \/ VAL = VAL .
+	eq VAL \/ Empty = VAL .
+
+*****getAssignVal---return Value assigned to variable in VAL Datastructure**************************
+****************************************************************************************************
+
+	op getAssignVal : VarassignList -> Nat .
+	eq getAssignVal((V , N) ) = N .
+	eq getAssignVal( (V , N) \/ (V1 , N)) = N .
+
+******INCREMENT value by 1 in VAL*******************************************************************
+****************************************************************************************************
+
+	op IncVarassign : VarassignList -> VarassignList .
+	eq IncVarassign(V , N1) = (V , N1 + 1) .
+	eq IncVarassign( (V , N1) \/ VAL) = ((V , N1 + 1) \/ IncVarassign(VAL)) .
+
+******update to value of an element in VAL to max***************************************************
+****************************************************************************************************
+
+op MaxVarassign : VarassignList -> VarassignList .
+eq MaxVarassign( VA \/ Empty ) = VA .
+eq MaxVarassign( Empty \/ VA )  = VA .
+eq MaxVarassign( VA \/ VA1 ) = if getAssignVal(VA) > getAssignVal(VA1) then VA else VA1 fi .
+eq MaxVarassign( VA \/ VA1 \/ VAL) = if getAssignVal(VA) > getAssignVal(VA1) then MaxVarassign( VA \/ VAL) else MaxVarassign(VA1 \/ VAL) fi .
+
+*********Assign a Value to an element in VAL********************************************************
+****************************************************************************************************
+
+op Assign : VarassignList Nat -> VarassignList .
+eq Assign( ( V , N) , N1) = (V , N1) .
+eq Assign( (V , N) \/ VAL , N1) = ( (V , N1) \/ Assign(VAL , N1) ).
+
+******Remove the duplicates in VAL list*************************************************************
+****************************************************************************************************
+
+eq VA \/ VA = VA .
+eq (V , N) \/ ( V , N1) = ( V , max(N , N1)) .
+
+*****Replace the element in " VarassignList " as in Substitution************************************
+****************************************************************************************************
+
+op ReplaceVarassign : VarassignList VarassignList -> VarassignList .
+eq ReplaceVarassign( ( V , N1) , (V1 , N2)) = (V1 , max(N1 , N2)) . 
+
+*****OCCUR check -We can use if required ***********************************************************
+****************************************************************************************************
+
+****Occurs in Term*********
+***************************
+
+	op Occurs : Variable Term -> Bool .
+	eq Occurs(V, C) = false .
+	ceq Occurs(V, V1 ) = false if(getName(V) =/= getName(V1)) .
+	ceq Occurs(V, V1) = true if(getName(V) == getName(V1)) .
+	eq Occurs(V, QI1[TL]) = Occurs(V, TL ) .
+	eq Occurs(V, 'P[T , T1]) = Occurs(V, T) or Occurs(V, T1) .
+
+*******Occurs in Termlist*******
+********************************
+
+	op Occurs : Variable TermList -> Bool .
+	eq Occurs(V, (T,TL)) = (Occurs(V, T) or Occurs(V, TL )).
+	eq Occurs(V, empty ) = false .
+
+*******Occurs in UnificandPair****
+**********************************
+
+        op Occurs : Variable UnificandPair -> Bool .
+        eq Occurs(V, (T =? T1) ) = ( Occurs(V , T ) or Occurs(V , T1)) .
+        eq Occurs(V, EmptyUnificandPair) = false .
+
+*******Occurs in UnificaitonProblem****
+***************************************
+
+	op Occurs : Variable UnificationProblem -> Bool .
+	eq Occurs(V, (UnPr /\ UnPr1)) = (Occurs(V, UnPr ) or Occurs(V, UnPr1 )) .
+        eq Occurs(V, EmptyEq) = false . 
+       
+************************************************************
+*******5. Generating New Variables, starting with 'NV,'*****
+************************************************************
+
+	op getType : Term -> Type .
+        eq getType( _+_(T , T1)) = getType(T) .
+	eq getType( QI1[T , TL] ) = getType(T) .
+	op GenNewVar(_ , _) : Type Int -> Variable .
+	eq GenNewVar(TY , N) = qid("NV" + string((N + 1), 10) + ":" + string(TY)) .
+	
+
+	
+	
+***************************************************************************************
+************Check if '#N:Nat occurs in Term , TermList ********************************
+****UnificandPair, UnificationProblem ***************************************************
+
+
+****Term **************
+***********************
+op CheckVinUnPr : Term -> Bool .
+eq CheckVinUnPr(C) = false .
+eq CheckVinUnPr(empty) = false .
+ceq CheckVinUnPr(V ) = true if find( string(V) , "#" , 0) =/= notFound .
+ceq CheckVinUnPr(V) = false if find( string(V) , "#" , 0) == notFound  .
+eq CheckVinUnPr(QI1[ TL]) =  CheckVinUnPr (TL) .
+
+
+
+*******TermList *******
+***********************
+
+op CheckVinUnPr : TermList -> Bool .
+eq CheckVinUnPr((T , TL )) = CheckVinUnPr(T) or CheckVinUnPr(TL) .
+
+
+***** UnificandPair ***
+***********************
+
+op  CheckVinUnPr : UnificandPair -> Bool .
+eq CheckVinUnPr( T =? T1) = CheckVinUnPr(T) or CheckVinUnPr(T1) .
+eq CheckVinUnPr(EmptyUnificandPair) = false .
+
+***UnificaitonProblem**
+***********************
+
+op CheckVinUnPr : UnificationProblem -> Bool .
+eq CheckVinUnPr( T =? T1 /\ UnPr ) = CheckVinUnPr(T =? T1) or CheckVinUnPr(UnPr) .
+eq CheckVinUnPr(EmptyEq) = false .
+
+****UnificationProblemList***
+*****************************
+
+op CheckVinUnPr : UnificationProblemList -> Bool .
+eq CheckVinUnPr(UnPr $$ UnPrL) = CheckVinUnPr(UnPr) or CheckVinUnPr(UnPrL) .
+
+***********Get Function symbol******************************
+************************************************************
+op GetSymbol : Term -> Qid .
+eq GetSymbol (QI1[ T , T1] ) = QI1 .
+eq GetSymbol (QI1[ T , TL] ) = QI1 .
+eq GetSymbol(T) = none [owise] .
+
+***********Get substitution from UnificationPair*******
+*******************************************************
+
+op getSubstitution : UnificationPair -> Substitution .
+  eq getSubstitution({S:Substitution, N:Nat}) = S:Substitution .
+
+*****Initialize  VAL with assigned value "0", at starting **************
+************************************************************************
+
+****Term **************
+***********************
+
+op InitializeVAL : Term -> VarassignList .
+eq InitializeVAL(V) = ( V , 0) .
+eq InitializeVAL(C) = Empty .
+eq InitializeVAL(QI1[TL]) = InitializeVAL(TL) .
+
+*******TermList *******
+***********************
+
+op InitializeVAL : TermList -> VarassignList .
+eq InitializeVAL((T , TL )) = InitializeVAL(T) \/ InitializeVAL(TL) .
+eq InitializeVAL(empty) = Empty .
+
+***** UnificandPair ***
+***********************
+
+op InitializeVAL : UnificandPair -> VarassignList .
+eq InitializeVAL( T =? T1) = InitializeVAL(T) \/ InitializeVAL(T1) .
+eq InitializeVAL(EmptyUnificandPair) = Empty .
+
+***UnificaitonProblem**
+***********************
+
+op InitializeVAL : UnificationProblem -> VarassignList .
+eq InitializeVAL(UdPr /\ UnPr ) = InitializeVAL(UdPr) \/ InitializeVAL(UnPr) .
+eq InitializeVAL(EmptyEq) = Empty .
+
+****UnificationProblemList***
+*****************************
+
+op InitializeVAL : UnificationProblemList -> VarassignList .
+eq InitializeVAL(UnPr $$ UnPrL) = InitializeVAL(UnPr) \/ InitializeVAL(UnPrL) .
+
+
+****** Get the number of terms in  Termlist ********
+****************************************************
+
+	op getNumber : TermList -> Int .
+	eq getNumber((T, TL)) = (getNumber(TL) + 1) .
+        eq getNumber(T) = 1 .
+        eq getNumber(empty) = 0 .
+
+*********Decompose********************************************************************
+**************************************************************************************
+
+op Decompose : TermList TermList -> UnificationProblem [ctor comm ] .
+eq Decompose( T , T1 ) = (T =? T1) .
+eq Decompose( T , T ) = EmptyEq .
+eq Decompose( empty , empty) = EmptyEq .
+eq Decompose( ( T , TL) , (T1 ,TL1) ) = ( T =? T1) /\ Decompose(TL , TL1) .
+
+*******************Convert substituion in to equation *************
+*******************************************************************
+op SubToEquation : Substitution -> UnificationProblem .
+eq SubToEquation( V <- T ; SB ) = V =? T /\ SubToEquation (SB) .
+eq SubToEquation (none) = EmptyEq .
+******************************************************************
+*******Add vars to VAL *******************************************
+op CheckVinVAL : Term VarassignList -> Bool .
+eq CheckVinVAL( V , (V , N)) = true  .
+eq CheckVinVAL(V , (V1 , N)) = false  .
+eq CheckVinVAL(C , VAL) = true .
+eq CheckVinVAL(T , Empty) = false .
+eq CheckVinVAL( QI[TL] , VAL ) = CheckVinVAL(TL, VAL) .
+eq CheckVinVAL (V , VA1 \/ VAL1) = CheckVinVAL(V , VA1) or CheckVinVAL(V , VAL1).
+
+*******TermList *******
+***********************
+
+op CheckVinVAL : TermList VarassignList -> Bool .
+eq CheckVinVAL ((T , TL ) , VAL) = CheckVinVAL (T , VAL) and CheckVinVAL ( TL, VAL) .
+eq CheckVinVAL (empty , VAL) = true .
+eq CheckVinVAL (TL , Empty) = false .
+
+***** UnificandPair ***
+***********************
+
+op CheckVinVAL : UnificandPair VarassignList -> Bool .
+eq CheckVinVAL (( T =? T1) , VAL) = CheckVinVAL (T , VAL) and CheckVinVAL (T1 , VAL) .
+eq CheckVinVAL (EmptyUnificandPair , VAL) = true  .
+eq CheckVinVAL(T =? T1 , Empty) = false .
+
+***UnificaitonProblem**
+***********************
+
+op CheckVinVAL : UnificationProblem VarassignList -> Bool .
+eq CheckVinVAL ( T =? T1 /\ UnPr , VAL ) = CheckVinVAL (T =? T1 , VAL) and CheckVinVAL (UnPr ,  VAL) .
+eq CheckVinVAL (EmptyEq , VAL) = true .
+eq CheckVinVAL(UnPr, Empty) = false .
+
+****UnificationProblemList***
+*****************************
+
+op CheckVinVAL : UnificationProblemList VarassignList -> Bool .
+eq CheckVinVAL ( FailEquation ,  VAL) = true .
+eq CheckVinVAL(UnPrL , Empty) = false .
+eq CheckVinVAL (UnPr $$ UnPrL ,  VAL) = CheckVinVAL (UnPr , VAL) or CheckVinVAL (UnPrL , VAL)  .
+*******************************************************************************
+*******************************************************************************
+****Term **************
+***********************
+
+op addvarsVAL : Term VarassignList -> VarassignList .
+ceq addvarsVAL( V , VAL)  = ( V , 0) \/ VAL if CheckVinVAL( V , VAL) = false .
+ceq addvarsVAL(V , VAL) = VAL if CheckVinVAL( V , VAL) =/= false .
+eq addvarsVAL( C , VAL) = VAL .
+eq addvarsVAL (QI1[TL] , VAL) = addvarsVAL ( (TL) , VAL) .
+
+
+*******TermList *******
+***********************
+
+op addvarsVAL : TermList VarassignList -> VarassignList .
+eq addvarsVAL ((T , TL ) , VAL) =  addvarsVAL( TL, addvarsVAL(T , VAL)) .
+eq addvarsVAL (empty , VAL) = VAL .
+
+***** UnificandPair ***
+***********************
+
+op addvarsVAL : UnificandPair VarassignList -> VarassignList .
+eq addvarsVAL (( T =? T1) , VAL) = addvarsVAL (T1 ,  addvarsVAL (T , VAL))  .
+eq addvarsVAL (EmptyUnificandPair , VAL) = VAL  .
+
+***UnificaitonProblem**
+***********************
+
+op addvarsVAL : UnificationProblem VarassignList -> VarassignList .
+eq addvarsVAL (EmptyEq , VAL) = VAL .
+eq addvarsVAL ( T =? T1 /\ UnPr , VAL ) = addvarsVAL(T =? T1 , VAL) \/  addvarsVAL(UnPr , addvarsVAL(T =? T1 , VAL)) .
+
+****UnificationProblemList***
+*****************************
+
+***op addvarsVAL : UnificationProblemList VarassignList -> VarassignList .
+***eq addvarsVAL (UnPr $$ UnPrL ,  VAL) = addvarsVAL(UnPr , VAL) \/ addvarsVAL(UnPrL , VAL)  .
+
+***************************Update variable counter*****************************
+*******************************************************************************
+op NewVarctr : Term Nat -> Nat .
+eq NewVarctr (C , N) = N .
+ ceq NewVarctr(V , N) = N + 1 if find( string(V) , "#" , 0) =/= notFound  .
+ceq NewVarctr(V , N) = N if find( string(V) , "#" , 0) == notFound  .
+eq NewVarctr (QI1[TL] , N) = NewVarctr (TL , N) .
+ 
+*******TermList ****************************************************************
+********************************************************************************
+
+op NewVarctr : TermList Nat -> Nat .
+eq NewVarctr ((T , TL ) , N) =  NewVarctr(TL , NewVarctr(T , N)) .
+eq NewVarctr(empty , N) = N .
+
+***** UnificandPair ********************************************************
+****************************************************************************
+
+op NewVarctr : UnificandPair Nat -> Nat .
+eq NewVarctr (( T =? T1) , N ) =   NewVarctr (T1 , NewVarctr (T , N))  .
+eq NewVarctr (EmptyUnificandPair , N) = N .
+
+***UnificaitonProblem**
+***********************
+
+op NewVarctr : UnificationProblem Nat -> Nat .
+eq NewVarctr (EmptyEq , N ) = N .
+eq NewVarctr ( T =? T1 /\ UnPr , N ) =   NewVarctr(UnPr , (NewVarctr(T1 , NewVarctr(T , N))) ) .
+
+****UnificationProblemList***
+*****************************
+
+op NewVarctr : UnificationProblemList Nat -> Nat .
+eq NewVarctr (UnPr $$ UnPrL ,  N) =  NewVarctr(UnPrL , NewVarctr(UnPr , N))  .
+
+*******************replace variable name **************************************
+****************Term **********************************************************
+*******************************************************************************
+
+op repvar : Term Nat -> Term .
+ceq repvar(V , N) = repvar( qid("RV" +  substr(string(getName(V)) , 1 , 1) + ":" + string(getType(V)) ) , N + 1 ) if find( string(V) , "#" , 0) =/= notFound  .
+ceq repvar(V , N ) = V if find( string(V) , "#" , 0) == notFound  .
+eq repvar(C , N) = C .
+eq repvar(QI1[TL] , N) = QI1[repvar(TL , N)] .
+ 
+*******TermList ****************************************************************
+********************************************************************************
+
+op repvar : TermList Nat -> TermList .
+eq repvar ((T , TL ) , N) =  (repvar(T , N ) , repvar(TL , NewVarctr(T , N))) .
+eq repvar (empty , N) = empty .
+
+***** UnificandPair ********************************************************
+****************************************************************************
+
+op repvar : UnificandPair  Nat -> UnificandPair .
+eq repvar ( T =? T1 , N )  = (repvar (T , N) =?  repvar (T1 , NewVarctr(T , N) ))  .
+eq repvar (EmptyUnificandPair , N ) = EmptyUnificandPair  .
+
+***UnificaitonProblem**
+***********************
+
+op repvar : UnificationProblem  Nat -> UnificationProblem .
+eq repvar (EmptyEq , N ) = EmptyEq .
+eq repvar ( T =? T1 /\ UnPr , N ) = repvar(T =? T1 , N ) /\  repvar(UnPr , NewVarctr(T =? T1 , N) ) .
+
+
+****UnificationProblemList***
+*****************************
+
+***op repvar : UnificationProblemList -> UnificationProblemList .
+***eq repvar (UnPr $$ UnPrL ) = repvar(UnPr) $$ repvar(UnPrL)  .
+
+*************************Check if a variable occurs in VAL *********************
+********************************************************************************
+
+*********** Write the UnificationProblem in to UnificandPair, UnificationProblem**********
+******************************************************************************************
+
+****op gUnify : UnificationProblemList SubstitutionList UnificationProblemList Nat VarassignList Nat Nat -> SubstitutionList .
+
+*******Trivial ****************************************************************************
+*******************************************************************************************
+
+eq gUnify( T =? T /\ UnPr, SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify(  UnPr , SL , UnPrL1 , N , VAL , N1 , N5 ) .
+eq gUnify( T =? T , SL , UnPrL1 , N , VAL , N1 , N5 ) =  SL .
+
+************************************************************************************************
+******************* if # occurs then replace the variable***************************************
+
+***ceq gUnify( T =? T1 /\ UnPr, SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify(  repvar(T =? T1 /\ UnPr , N ) , SL , UnPrL1 , N , VAL , N1 , N5 ) if CheckVinUnPr( T =? T1 /\ UnPr) = true .
+***ceq gUnify( T =? T1 , SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify(  repvar(T =? T1 , N ) , SL , UnPrL1 , N , VAL , N1 , N5 ) if CheckVinUnPr( T =? T1) = true .
+
+************************************************************************************************
+***************************addvarsVAL***********************************************************
+
+ceq gUnify( T =? T1 /\ UnPr, SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify( T =? T1 /\ UnPr  , SL , UnPrL1 , N , addvarsVAL(T =? T1 /\ UnPr , VAL) , N1 , N5 ) if CheckVinVAL( T =? T1 /\ UnPr , VAL) = false .
+ceq gUnify( T =? T1 , SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify(  T =? T1 , SL , UnPrL1 , N ,  addvarsVAL(T =? T1  , VAL)  , N1 , N5 ) if CheckVinVAL( T =? T1 , VAL ) = false .
+
+
+*******Occurs Check*****************************************************************************
+********V = QI1[TL] ****************************************************************************
+
+ceq gUnify( V =? QI1[TL] /\ UnPr , SL , UnPrL1 , N , VAL , N1 , N5) = fail if Occurs( V , QI1[TL]) .
+ceq gUnify(  V =? QI1[TL] ,  SL , UnPrL1 , N , VAL , N1 , N5) = fail if Occurs( V , QI1[TL] ) .
+
+ceq gUnify( V =? QI1[TL] /\ UnPr , SL , UnPrL1 , N , VAL , N1 , N5) = fail if Occurs( V , Substitute( QI1[TL]  , SL)) .
+ceq gUnify(  V =? QI1[TL] ,  SL , UnPrL1 , N , VAL , N1 , N5) = fail if Occurs( V , Substitute( QI1[TL] , SL)) .
+
+
+
+
+******Inference rules to check for proper assigned values if Proper***********************
+******************************************************************************************
+
+
+*******x = h(y)*********
+
+ceq gUnify( V =? 'h[V1] /\ UnPr , SL , UnPrL1 , N , (V , N2) \/ (V1 , N3) \/ VAL , N1 , N5) =   gUnify( V =? 'h[V1] /\ UnPr , SL , UnPrL1 , N , Assign((V , N2 ) , N3 + 1) \/ (V1 , N3) \/ VAL , N1 , N5) if N2 < (N3 + 1) .
+
+ceq gUnify( V =? 'h[V1] , SL , UnPrL1 , N , (V , N2) \/ (V1 , N3) \/ VAL , N1 , N5) =   gUnify( V =? 'h[V1] , SL , UnPrL1 , N , Assign((V , N2 ) , N3 + 1) \/ (V1 , N3) \/ VAL , N1 , N5) if N2 < (N3 + 1) .
+
+*******x = x1 + x2 *****
+
+ceq gUnify( V =? '_+_ [ V1 , V2] /\ UnPr , SL , UnPrL1 , N , (V , N2) \/ (V1 , N3) \/ (V2 , N4) \/ VAL , N1 , N5) = gUnify( V =? '_+_ [ V1 , V2] /\ UnPr , SL , UnPrL1 , N , Assign((V , N2) , max(N3 ,N4)) \/ (V1 , N3) \/ (V2 , N4) \/ VAL , N1 , N5)  if N2 < max(N3 , N4) .
+ceq gUnify( V =? '_+_ [ V1 , V2] , SL , UnPrL1 , N , (V , N2) \/ (V1 , N3) \/ (V2 , N4) \/ VAL , N1 , N5) = gUnify( V =? '_+_ [ V1 , V2] , SL , UnPrL1 , N , Assign((V , N2), max(N3 ,N4)) \/ (V1 , N3) \/ (V2 , N4) \/ VAL , N1 , N5) if N2 < max(N3 , N4) .
+
+********* Inference rules for "fail"**************
+**************************************************
+
+******** Using Bound "N1" to get fail ************
+*************************************************
+
+
+ceq gUnify(UnPrL , SL , UnPrL1 , N , VAL , N1 , N5 ) = fail if getAssignVal(MaxVarassign(VAL)) > N1 .
+
+
+
+
+**************************************************************************
+***********Substitute in unificationproblem*******************************
+
+*******ceq gUnify( V =? T /\ UnPr , SL , UnPrL1 , N , VAL , N1 , N5) = gUnify( Substitute( UnPr , V <- T) , SL , UnPrL1 , N , VAL , N1 , N5) if Occurs(V , UnPr) .
+
+
+
+******Put the UnificationProblem in to proper by introducing new Variables*****
+*******************************************************************************
+
+******* T and T1 are not variables **
+*************************************
+
+ceq gUnify( T =? T1 /\ UnPr, SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify( GenNewVar(getType(T), N ) =? T /\ GenNewVar( getType (T1) , N) =? T1 /\ UnPr, SL , UnPrL1 , N + 1 , VAL \/ ( GenNewVar( getType(T), N) , 0) , N1 , N5 ) if IsVar(T) = false  /\ IsVar(T1) = false .
+
+ceq gUnify( T =? T1 , SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify ( GenNewVar( getType(T), N) =? T /\ GenNewVar( getType (T1) , N ) =? T1, SL, UnPrL1 , N + 1 , VAL \/ ( GenNewVar( getType(T), N  ) , 0) , N1 , N5 ) if IsVar(T) = false  /\ IsVar(T1) = false .
+
+********T1 is not a variable*********
+*************************************
+
+ceq gUnify( T =? '_+_ [T1 , T2] /\ UnPr, SL, UnPrL1 , N , VAL , N1 , N5 ) =  gUnify( T =? '_+_ [GenNewVar( getType(T1) , N ) , T2 ] /\ GenNewVar( getType(T1) , N ) =? T1 /\ UnPr, SL, UnPrL1 , N + 1 , VAL \/ ( GenNewVar( getType(T1) , N ) , 0) , N1 , N5 ) if IsVar(T1) = false .
+
+ceq gUnify( T =? '_+_ [T1 , T2], SL, UnPrL1 , N , VAL , N1 , N5 ) =  gUnify( T =? '_+_ [GenNewVar( getType(T1) , N ) , T2 ] /\ GenNewVar( getType(T1) , N ) =? T1, SL, UnPrL1 , N + 1 , VAL \/ (GenNewVar( getType(T1) , N ) , 0) , N1 , N5 ) if IsVar(T1) = false .
+
+
+********T2 is not a variable*********
+*************************************
+
+ceq gUnify( T =? '_+_ [T1 , T2] /\ UnPr , SL, UnPrL1 , N , VAL , N1 , N5 ) = gUnify( T =? '_+_ [ T1 , GenNewVar( getType(T2) , N )] /\  GenNewVar( getType(T2) , N ) =? T2 /\ UnPr, SL, UnPrL1 , N + 1 , VAL \/ ( GenNewVar( getType(T2) , N ), 0) , N1 , N5 ) if IsVar(T2) = false .
+
+ceq gUnify( T =? '_+_ [T1 , T2], SL, UnPrL1 , N , VAL , N1 , N5 ) = gUnify( T =? '_+_ [ T1 , GenNewVar( getType(T2) , N )] /\  GenNewVar( getType(T2) , N ) =? T2, SL , UnPrL1 , N + 1 , VAL \/ (GenNewVar( getType(T2) , N ), 0) , N1 , N5 ) if IsVar(T2) = false .
+
+***** T = h(T1)******************
+*********************************
+
+ceq gUnify( T =? 'h[T1] /\ UnPr, SL , UnPrL1 , N , VAL , N1 , N5 ) = gUnify( T =? 'h[GenNewVar(getType(T1), N  )] /\ GenNewVar(getType(T1), N  ) =? T1 /\ UnPr , SL , UnPrL1 , N + 1 , VAL \/ (GenNewVar(getType(T1), N  ) , 0 ) , N1 , N5 ) if IsVar(T1) = false .
+
+ceq gUnify( T =? 'h[T1] , SL , UnPrL1 , N  , VAL , N1 , N5 ) = gUnify( T =? 'h[GenNewVar(getType(T1), N  )] /\ GenNewVar(getType(T1), N ) =? T1  , SL , UnPrL1 , N + 1 , VAL \/ ( GenNewVar( getType(T1), N ) , 0 ) , N1 , N5 ) if IsVar(T1) = false .
+
+
+
+****Orient **********************************
+**********************************************
+**********T =? V******************************
+
+ceq gUnify( T =? T1 /\ UnPr, SL , UnPrL1,  N , VAL , N1 , N5 ) = gUnify( T1 =? T /\ UnPr , SL , UnPrL1 , N , VAL , N1 , N5 )  if IsVar(T1) = true /\ IsVar(T) = false .
+
+ceq gUnify( T =? T1 , SL , UnPrL1, N , VAL , N1 , N5 ) = gUnify( T1 =? T, SL , UnPrL1, N , VAL , N1 , N5 )  if IsVar(T1) = true /\ IsVar(T) = false .
+
+
+
+***************Splitting Rule************************************************************
+**************3. w=h(y), w=x1+x2 ==> w=h(y), y=y1+y2, x1=h(y1), x2=h(y2)*****************
+
+
+
+eq gUnify( V =? 'h[V1] /\ V =? '_+_ [V2 , V3] /\ UnPr , SL, UnPrL1, N , VAL , N1 , N5 ) = gUnify( V =? 'h[V1] /\ V1 =? '_+_ [GenNewVar( getType(V1), N  ) , GenNewVar( getType(V1) , N + 1 )] /\ V2 =? 'h[GenNewVar( getType(V1) , N )] /\ V3 =? 'h[GenNewVar( getType(V1) , N + 1)] /\ UnPr, SL , UnPrL1, N + 2 , VAL \/ (GenNewVar( getType(V1) , N ) , 0) \/ (GenNewVar( getType(V1) , N + 1 ), 0 ) , N1 , N5 ) .
+
+eq gUnify( V =? 'h[V1] /\ V =? '_+_ [V2 , V3] , SL , UnPrL1, N , VAL , N1 , N5) = gUnify( V =? 'h[V1] /\ V1 =? '_+_ [GenNewVar( getType(V1), N) , GenNewVar( getType(V1) , N + 1 )] /\ V2 =? 'h[GenNewVar( getType(V1) , N )] /\ V3 =? 'h[GenNewVar( getType(V1) , N + 1)] , SL , UnPrL1, N + 2 , VAL \/ (GenNewVar( getType(V1) , N ) , 0) \/ (GenNewVar( getType(V1) , N + 1), 0 ), N1 , N5 ) .
+ 
+
+**********This should be here otherwise cannot apply rule with 'h , 'P**************************
+************************************************************************************************
+
+ceq gUnify( V =? QI1[TL] /\ V =? QI2[TL1] /\ UnPr, SL , UnPrL1, N , VAL , N1 , N5 ) = fail if QI1 =/= QI2 .
+ceq gUnify( V =? QI1[TL] /\ V =? QI2[TL1] , SL , UnPrL1, N , VAL , N1 , N5 ) = fail if QI1 =/= QI2 .
+
+*********Fail *********************************************************************************
+***************** V = C1 /\ V =C **************************************************************
+
+ceq gUnify( V =? C1 /\ V =? C /\ UnPr, SL, UnPrL1, N , VAL , N1 , N5  ) = fail if C1 =/= C .
+ceq gUnify( V =? C1 /\ V =? C , SL , UnPrL1, N , VAL , N1 , N5  ) = fail if C1 =/= C .
+
+
+
+******************************************************************************************************
+**********Capture equations with '+'******************************************************************
+
+op GetEqsPlus : UnificationProblem -> UnificationProblem .
+ceq GetEqsPlus( V =? T ) = ( V =? T ) if GetSymbol(T) = '_+_ .
+ceq GetEqsPlus(V =? T ) = EmptyEq if GetSymbol(T) =/= '_+_ . 
+eq GetEqsPlus( V =? T /\ UnPr ) =  GetEqsPlus(V =? T) /\ GetEqsPlus(UnPr) .
+
+
+**************************************************************************************************
+****************Capture other equations***********************************************************
+
+op GetOtherEqs : UnificationProblem -> UnificationProblem .
+ceq GetOtherEqs( V =? T ) = ( V =? T ) if GetSymbol(T) =/= '_+_ .
+ceq GetOtherEqs( V =? T ) = EmptyEq if GetSymbol(T) = '_+_ .
+eq GetOtherEqs( V =? T /\ UnPr) = GetOtherEqs(V =? T) /\ GetOtherEqs(UnPr) .
+
+**************Decomposition *******************
+***********************************************
+************** V = QI1[TL] /\ V =QI1[TL1]******
+
+ceq gUnify( V =? QI1[TL] /\ V =? QI1[TL1] /\ UnPr, SB , UnPrL1, N , VAL , N1 , N5 ) = fail if getNumber((TL)) =/= getNumber((TL1)) /\ QI1 =/= '_+_ .
+ceq gUnify( V =? QI1[TL] /\ V =? QI1[TL1] , SB , UnPrL1, N , VAL , N1 , N5 ) = fail if getNumber((TL)) =/= getNumber((TL1)) /\ QI1 =/= '_+_ .
+ceq gUnify( V =? QI1[TL] /\ V =? QI1[TL1] /\ UnPr, SB, UnPrL1, N , VAL , N1 , N5 ) = gUnify(Decompose(V, QI1[TL])/\ Decompose(TL, TL1) /\ UnPr, SB , UnPrL1, N , VAL , N1 , N5) if QI1 =/= '_+_  .
+ceq gUnify( V =? QI1[TL] /\ V =? QI1[TL1], SB, UnPrL1, N , VAL , N1 , N5) = gUnify(Decompose(V, QI1[TL]) /\ Decompose(TL, TL1), SB , UnPrL1, N , VAL , N1 , N5) if QI1 =/= '_+_ .
+
+************************************************************************************************************
+************************************************************************************************************
+
+ceq gUnify( V =? T /\ V =? T1 /\ UnPr , SB  , UnPrL1, N , VAL , N1 , N5 )  = gUnify( V =? T /\ T =? T1 /\ UnPr , SB  , UnPrL1, N , VAL , N1 , N5 ) if GetSymbol(T) =/= '_+_ /\ GetSymbol(T1) =/= '_+_  .
+ ceq gUnify( V =? T /\ V =? T1  , SB  , UnPrL1, N , VAL , N1 , N5 )  = gUnify( V =? T /\ T =? T1  , SB  , UnPrL1, N , VAL , N1 , N5 ) if GetSymbol(T) =/= '_+_ /\ GetSymbol(T1) =/= '_+_   .
+
+*********************************************************************************************************
+*********************************combine equations ******************************************************
+
+
+op CombineEqs : UnificationProblemList SubstitutionList UnificationProblemList Nat VarassignList Nat Nat -> UnificationProblemList .
+eq CombineEqs( UnPr , SL , UnPr1 $$ UnPrL , N , VAL , N1 , N5) = (UnPr1 /\ GetOtherEqs(UnPr)) $$ CombineEqs( UnPr , SL , UnPrL , N , VAL , N1 , N5).
+eq CombineEqs( UnPr , SL , UnPr1 , N , VAL , N1 , N5) = UnPr1 /\ GetOtherEqs(UnPr) .
+
+
+***********Applying built-in AC unification***************************************************************
+**********Gathering the equations of the form V = V1 + V2*************************************************
+
+
+ceq gUnify( UnPr  , SL , UnPrL, N , VAL , N1 , N5 ) =  gUnify( UnPr, SL , (SubToEquation(getSubstitution(metaUnify(upModule('NAT, false) , GetEqsPlus(UnPr) , 0 , N5 ))) $$ UnPrL), N , VAL , N1 , s ( N5 )  ) if metaUnify( upModule('NAT, false) , GetEqsPlus(UnPr) , 0 , N5 ) =/= (noUnifier).UnificationPair? /\ CheckVinUnPr(UnPr) = false /\ GetEqsPlus(UnPr) =/= EmptyEq .
+
+ceq gUnify(UnPr  , SL ,  UnPrL1, N , VAL , N1 , N5) = gUnify( CombineEqs( UnPr , SL , UnPrL1 , N , VAL , N1 , N5), SL , EmptyEq , N , VAL , N1 , N5) if CheckVinUnPr (UnPr) = false /\ UnPrL1 =/= EmptyEq .
+eq gUnify(UnPr  , SL ,  UnPrL, N , VAL , N1 , N5) = gUnify( GetOtherEqs(UnPr), SL , EmptyEq , N , VAL , N1 , N5) [owise].
+
+****ceq gUnify(UnPr  , SL ,  UnPrL, N , VAL , N1 , N5) =  gUnify(UnPr  , SL ,  UnPrL, N , addvarsVAL(UnPr , VAL) , N1 , N5) if CheckVinVAL(UnPr , VAL) = false .
+
+
+
+
+
+
+*************Variable Elimination************************************************************************
+*********************** V =? T **************************************************************************
+
+
+ceq gUnify( V =? T /\ V1 =? T1 /\ UnPr , SB  , UnPrL1, N , VAL , N1 , N5 ) =  gUnify(   V =? T /\ UnPr ,  Substitute( SB , V1 <- T1) ; V1 <- T1 , UnPrL1, N , VAL , N1 , N5) if Occurs (V , T1 ) .
+ceq gUnify( V =? T /\ V1 =? T1 , SB , UnPrL1, N , VAL , N1 , N5 ) = gUnify ( V =? T , Substitute( SB ,  V1 <- T1) ; V1 <- T1 , UnPrL1, N , VAL , N1 , N5 ) if Occurs (V , T1) .
+eq gUnify( V =? T /\ UnPr , SB , UnPrL1, N , VAL , N1 , N5 ) =  gUnify(   UnPr ,  Substitute( SB ,  V <- T) ; V <- T , UnPrL1, N , VAL , N1 , N5)  .
+eq gUnify( V =? T  , SB , UnPrL1, N , VAL , N1 , N5 ) =  Substitute( SB ,  V <- T) ; V <- T  .
+
+
+*********************************************************************************************************************************************
+*********************************************************************************************************************************************
+
+op SolEqsACH : UnificationProblem Nat -> SubstitutionList .
+eq SolEqsACH(UnPrL , N) = gUnify( UnPrL , none , EmptyEq , 0 , Empty , N, 0) .
+
+
+***************Testing Area*******************************************************************************************************************
+**********************************************************************************************************************************************
+***********Command****************************************************************************************************************************
+****red in Unif : SolEqsACH ( p , N ).
+****p--UnificaitonProblemList, N--Bound
+**********************************************************************************************************************************************
+ops p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 : -> UnificationProblemList .
+ops p10 p11 p12 p13 p14 p15 p16 p17 p18 p19 : -> UnificationProblemList .
+ops p20 p21 p22 p23 p24 p25 p26 p27 p28 p29 p30 p31 p32 p33 p34 p35 p36 p37 p38 p39 p40 p41 p42 p43 p44 p45 p46 p47 p48 p49 p50 p51 p52 p53 p54 p55 p56 p57 p58 p59 p60 : -> UnificationProblemList .
+ops p61 p62 p63 p64 p65 p66 p67 p68 p69 p70 p71 p72 p73 p74 p75 p76 p77 p78 : -> UnificationProblemList .
+ops p79 p80 p81 p82 p83 p84 p85 p86 p87 p89 p88 p90 p91 p92 p93 p94 p95 p96 p97 p98 p99 p100 : -> UnificationProblemList .
+eq p1 = ('v:Nat =? '_+_ ['x:Nat , 'y:NzNat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat])/\ 's:Nat =? 'h['t:Nat]  .
+****/ .
+***$$ ('z:Nat =?  ‘h[‘#1:Nat] ) .
+
+ *******'v:Nat <- 'P['x:Nat,'z:Nat] ; 'w:Nat <-'x:Nat ; 'y:Nat <- 'z:Nat
+eq p2 = ('h['x:Nat] =? 'h['#1:Nat])  .
+***$$ ('v:Nat =?  'h['x:Nat] /\ 'v:Nat =? 'h['y:Nat]) . ******	'x:Nat <- 'y:Nat
+eq p3 = ('h['x:Nat] =? 'h['y:Nat]) $$ ('v:Nat =?  'h['x:Nat] /\ 'v:Nat =? 'h['y:Nat]) .
+****$$ ('z:Nat =?  'h['w:Nat] ) . ****'v:Nat <- 'h['y:Nat] ; 'x:Nat <- 'y:Nat
+eq p4 = 'h['h['x:Nat]] =? 'h['h['y:Nat]] . ***	'x:Nat <- 'y:Nat
+eq p6 = 'h['y:Nat] =? '_+_ ['x1:Nat , 'x2:Nat] . ****'x1:Nat <- 'h['NV2:Nat] ; 'x2:Nat <- 'h['NV3:Nat] ; 'y:Nat <- 'P['NV2:Nat,'NV3:Nat]
+eq p7 = '_+_ ['y1:Nat , 'x2:Nat] =? '_+_ ['y1:Nat , 'y2:Nat] . ********'x2:Nat <- 'y2:Nat
+eq p8 = 'h['y:Nat] =? '_+_ ['y:Nat , 'x2:Nat] . *******fail
+eq p9 = 'h['x:Nat] =? 'x:Nat . *********fail
+eq p10 = 'f['x:Nat] =? 'x:Nat . *********fail
+eq p11 = 'g['x:Nat] =? 'x:Nat . ********fail
+eq p13 = 'h['y:Nat] =? 'x:Nat /\ 'y:Nat =? 'h['x:Nat] . *********fail
+eq p15 = 'f['y:Nat] =? 'x:Nat /\ 'y:Nat =? '_+_ ['x:Nat , 'y:Nat] . *********fail
+eq p21 = 'h['y:Nat] =? 'x:Nat /\ 'y:Nat =? 'h['x:Nat] . *********fail
+eq p23 = 'g['y:Nat] =? 'x:Nat /\ 'y:Nat =? 'P['x:Nat , 'y:Nat] . *********fail
+eq p24 = 'f['x:Nat , 'y:Nat] =? 'x:Nat . *********fail
+eq p25 = 'h['x:Nat , 'y:Nat] =? 'x:Nat . *********fail
+eq p26 = 'P['x:Nat , 'y:Nat] =? 'x:Nat . *********fail
+eq p27 = 'g['x:Nat , 'y:Nat] =? 'x:Nat . *********fail
+****eq p28 = 'f['x:Nat , 'y:Nat]  =? 'f['x1:Nat , 'x2:Nat] . *********fail
+eq p29 = 'g['x:Nat , 'y:Nat]  =? '_+_ ['x1:Nat , 'x2:Nat] . *********fail
+eq p30 = 'f['x:Nat , 'y:Nat] =? 'h['x1:Nat] . *********fail
+eq p31 = 'g['x:Nat , 'y:Nat] =? 'h['x1:Nat] . *********fail
+eq p32 = 'f['x1:Nat] =? 'f['x:Nat , 'y:Nat] . *********fail
+eq p33 = 'a.Nat =? 'b.Nat .
+eq p34 = 'h['h['x:Nat]] =? 'h['y:Nat] . *****'y:Nat <- 'h['x:Nat]
+eq p35 = 'h['x:Nat] =? 'h['y:Nat] /\ 'y:Nat =? 'x:Nat . ******'y:Nat <- 'x:Nat
+eq p36 = 'h['h['x:Nat]] =? '_+_ ['_+_ ['v:Nat, 'w:Nat], '_+_ ['y:Nat, 'z:Nat]] . **********'v:Nat <- 'h['h['NV13:Nat]] ; 'w:Nat <- 'h['h['NV14:Nat]] ; 'x:Nat <- 'P['P['NV13:Nat,'NV14:Nat],'P['NV15:Nat,'NV16:Nat]] ; 'y:Nat <- 'h['h['NV15:Nat]] ; 'z:Nat <- 'h['h['NV16:Nat]] 
+eq p37 = 'h['x:Nat] =? '_+_ ['v:Nat, '_+_ ['y:Nat, 'z:Nat]] . *******'v:Nat <- 'h['NV3:Nat] ; 'x:Nat <- 'P['NV3:Nat,'P['NV5:Nat,'NV6:Nat]] ; 'y:Nat <- 'h['NV5:Nat] ; 'z:Nat <- 'h['NV6:Nat]
+eq p38 = 'x:Nat =? 'h['u:Nat] /\ 'y:Nat =? 'h['x:Nat] .  *****fail
+eq p39 = 'h['u:Nat] =? '_+_ ['v:Nat, 'v:Nat] /\ 'v:Nat =? '_+_ ['w:Nat, 'x:Nat] . *****'u:Nat <- 'P['P['NV7:Nat,'NV8:Nat],'P['NV7:Nat,'NV8:Nat]] ; 'v:Nat <- 'h['P['NV7:Nat,'NV8:Nat]] ; 'w:Nat <- 'h['h['NV7:Nat]] ;'x:Nat <- 'h['h['NV8:Nat]]
+eq p40 = 'h['h['x:NzNat]] =? '_+_ ['y1:NzNat, 'y2:Nat] .
+eq p42 = ('v:Nat =? '_+_ ['h['x:Nat] , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat]) .
+eq p43 = ('h['x:Nat] =? 'x:Nat) $$ ('h['y:Nat] =? 'x:Nat ) .
+eq p44 = 'x:Nat =? 'y:Nat .
+eq p45 = ('v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat]).
+eq p46 = ('v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['x:Nat , 'z:Nat]).
+eq p47 = ('V:Nat =? '_+_ ['V1:Nat , 'V2:Nat] /\ 'V1:Nat  =? '_+_ ['V3:Nat , 'V4:Nat] /\ 'V:Nat =? '_+_ ['V5:Nat , 'V6:Nat] /\ 'V5:Nat =? '_+_['V7:Nat , 'V8:Nat]) . 
+eq p48 = 'h['x:Nat] =? 'y:Nat .
+eq p49 = 'h['x:NzNat] =? 'y:Nat .
+eq p50 = 'h['x:NzNat] =? 'y:NzNat .
+eq p51 = 'x:Nat =? '_+_ ['x:Nat , 'y:Nat] .
+eq p52 = 'V:Nat =? '_+_ ['V1:Nat ,  'V2:Nat] /\ 'V1:Nat =? '_+_ ['V3:Nat , 'V4:Nat] .
+eq p53 = 'v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat] /\ 'x:Nat =? 'h ['v1:Nat] .
+*********'w:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 'x:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'y:Nat =? '_+_['#3:Nat,'#4:Nat] /\ 'z:Nat =? '_+_['#2:Nat,'#4:Nat] .
+eq p54 = 'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat,'#4:Nat] .
+eq p55 = 'v:Nat =? '_+_['x:Nat,'y:Nat,'z:Nat,'w:Nat] .
+eq p56 = 'v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat] /\ 'x:Nat =? 'h ['v1:Nat] /\ 'x:Nat =? 'y:Nat .
+eq p57 =  'V1:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'V2:Nat =? '#3:Nat /\ 'V3:Nat =? '#1:Nat /\ 'V4:Nat =? '#2:Nat /\ 'V:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat, '#4:Nat, '#5:Nat] .
+eq p58 = 'V2:Nat =? '#3:Nat /\ 'V3:Nat =? '#1:Nat /\ 'V4:Nat =? '#2:Nat /\  'V1:Nat =? '_+_['#1:Nat,'#2:Nat] .
+ eq p59 = ('v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat] /\ 'x:Nat =? 'h['v1:Nat] ).
+eq p60 = ('v:Nat =? '_+_ ['x:Nat , 'y:Nat] /\ 'v:Nat =? '_+_ ['w:Nat , 'z:Nat] /\ 'x:Nat =? 'h['v1:Nat] /\ 'w:Nat =? 'v2:Nat).
+eq p61 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? '_+_ ['x3:Nat , 'x4:Nat] /\ 'v:Nat =? 'h['y:Nat]).
+eq p62 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? 'h ['y1:Nat] /\ 'v:Nat =? 'h['y2:Nat]).
+eq p63 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? '_+_ ['x3:Nat , 'x4:Nat] /\ 'x1:Nat =? 'h['y:Nat]).
+eq p64 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? '_+_ ['x3:Nat , 'x4:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat]).
+eq p65 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x1:Nat =? '#1:Nat /\ 'x2:Nat =? '#2:Nat /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '#2:Nat) /\ GetOtherEqs(p64) .
+eq p66 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x1:Nat =? '#1:Nat /\ 'x2:Nat =? '#2:Nat /\ 'x3:Nat =? '#1:Nat /\ 
+	'x4:Nat =? '#2:Nat)
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 
+	'x1:Nat =? '#2:Nat /\ 
+	'x2:Nat =? '#1:Nat /\ 
+	'x3:Nat =? '#1:Nat /\ 
+	'x4:Nat =? '#2:Nat)
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 
+	'x1:Nat =? '#1:Nat /\ 
+	'x2:Nat =? '_+_['#2:Nat,'#3:Nat] /\ 
+	'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 
+	'x4:Nat =? '#3:Nat)
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 
+	'x1:Nat =? '#2:Nat /\ 
+	'x2:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 
+	'x3:Nat =? '#1:Nat /\ 
+	'x4:Nat =? '_+_['#2:Nat,'#3:Nat])
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 
+	'x1:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 
+	'x2:Nat =? '#3:Nat /\ 
+	'x3:Nat =? '#1:Nat /\ 
+	'x4:Nat =? '_+_['#2:Nat,'#3:Nat])
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 
+	'x1:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 
+	'x2:Nat =? '#2:Nat /\ 
+	'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 
+	'x4:Nat =? '#3:Nat)
+	$$
+	(
+	'v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat,'#4:Nat] /\ 
+	'x1:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 
+	'x2:Nat =? '_+_['#2:Nat,'#4:Nat] /\ 
+	'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 
+	'x4:Nat =? '_+_['#3:Nat,'#4:Nat]).
+eq p67 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x1:Nat =? '#1:Nat /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '#2:Nat /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '#2:Nat) .
+eq p68 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x1:Nat =? '#2:Nat /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '#1:Nat /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '#2:Nat) .
+eq p69 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 'x1:Nat =? '#1:Nat /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '_+_['#2:Nat,'#3:Nat] /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x4:Nat =? '#3:Nat) .
+eq p70 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 'x1:Nat =? '#2:Nat /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '_+_['#2:Nat,'#3:Nat]) .
+eq p71 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 'x1:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '#3:Nat /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '_+_['#2:Nat,'#3:Nat]) .
+eq p72 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat] /\ 'x1:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '#2:Nat /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x4:Nat =? '#3:Nat) .
+eq p73 = ('v:Nat =? '_+_['#1:Nat,'#2:Nat,'#3:Nat,'#4:Nat] /\ 'x1:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 'x2:Nat =? '_+_['#2:Nat,'#4:Nat]  /\ 'x3:Nat =? '_+_['#1:Nat,'#2:Nat] /\ 'x4:Nat =? '_+_['#3:Nat,'#4:Nat]) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p74 =  'x1:Nat =? '_+_['#1:Nat,'#3:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? '_+_['#2:Nat,'#4:Nat] /\ 'x2:Nat =? 'h[ 'y:Nat]  .
+eq p76 = '#1:Nat =? 'h['#1:Nat]  .
+eq p77 = '#1:Nat =? 'h['NV1:Nat] /\ '#3:Nat =? 'h['NV2:Nat] /\ 'NV1:Nat =? '#1:Nat /\ 'NV2:Nat =? '#2:Nat /\ 'x1:Nat =? 'h['y:Nat] /\ 'y:Nat =? '_+_['#2:Nat,'#1:Nat] /\ '#2:Nat =? 'h['NV1:Nat] /\ '#4:Nat =? 'h['NV2:Nat] /\ 'NV1:Nat =? '#1:Nat /\ 'NV2:Nat =? '#2:Nat /\ 'x2:Nat =? 'h['y:Nat] /\ 'y:Nat =? '_+_['#1:Nat,'#2:Nat] .
+eq p78 = ( 'x1:Nat =? '#1:Nat /\ 'x2:Nat =? '#2:Nat /\ 'x3:Nat =? '#1:Nat /\ 'x4:Nat =? '#2:Nat)  .
+eq p79 = ('v:Nat =? '_+_['x1:Nat ,'x2:Nat] /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? 'x1:Nat /\ 'x4:Nat =? 'x2:Nat) .
+eq p80 = ('v:Nat =? '_+_['x1:Nat , 'V1:Nat , 'x4:Nat] /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] /\ 'x3:Nat =? '_+_['x1:Nat ,'V1:Nat] /\ 'x2:Nat =? '_+_ [ 'V1:Nat , 'x4:Nat] ) .
+
+**********************************************************************************************************************************************
+eq p64 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? '_+_ ['x3:Nat , 'x4:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat]).
+
+eq p81 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x1:Nat =? 'RV1:Nat /\ 
+	'x2:Nat =? 'RV2:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? 'RV2:Nat) /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+eq p82 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x1:Nat =? 'RV2:Nat /\ 
+	'x2:Nat =? 'RV1:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? 'RV2:Nat) /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+	
+
+eq p83 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? 'RV1:Nat /\ 
+	'x2:Nat =? '_+_['RV2:Nat,'RV3:Nat] /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? 'RV3:Nat)/\ 'x2:Nat =? 'h['y:Nat] .
+	*** /\ 'x1:Nat =? 'h['y:Nat]  .
+	***
+	
+eq p84 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? 'RV2:Nat /\ 
+	'x2:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? '_+_['RV2:Nat,'RV3:Nat]) /\   'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+	
+eq p85 =	(
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x2:Nat =? 'RV3:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? '_+_['RV2:Nat,'RV3:Nat]) /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+eq p86 =
+	(
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x2:Nat =? 'RV2:Nat /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? 'RV3:Nat) /\  'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+	
+eq p87 =
+	(
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat,'RV4:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x2:Nat =? '_+_['RV2:Nat,'RV4:Nat] /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? '_+_['RV3:Nat,'RV4:Nat]) /\   'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+	
+*******************************************************************************************************************************************************
+eq p88 = ('v:Nat =? '_+_ ['x1:Nat , 'x2:Nat] /\ 'v:Nat =? '_+_ ['x3:Nat , 'x4:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'y:Nat =? '+['y1:Nat, 'y2:Nat]).
+eq p89 =  (
+	'v:Nat  =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x1:Nat =? 'RV1:Nat /\ 
+	'x2:Nat =? 'RV2:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? 'RV2:Nat) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p90 =  (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x1:Nat =? 'RV2:Nat /\ 
+	'x2:Nat =? 'RV1:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? 'RV2:Nat) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p91 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? 'RV1:Nat /\ 
+	'x2:Nat =? '_+_['RV2:Nat,'RV3:Nat] /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? 'RV3:Nat) /\ 'x1:Nat =? 'h['y:Nat] .
+	
+eq p92 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? 'RV2:Nat /\ 
+	'x2:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? '_+_['RV2:Nat,'RV3:Nat]) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p93 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x2:Nat =? 'RV3:Nat /\ 
+	'x3:Nat =? 'RV1:Nat /\ 
+	'x4:Nat =? '_+_['RV2:Nat,'RV3:Nat]) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p94 = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x2:Nat =? 'RV2:Nat /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? 'RV3:Nat) /\ 'x1:Nat =? 'h['y:Nat] .
+eq p95  = (
+	'v:Nat =? '_+_['RV1:Nat,'RV2:Nat,'RV3:Nat,'RV4:Nat] /\ 
+	'x1:Nat =? '_+_['RV1:Nat,'RV3:Nat] /\ 
+	'x2:Nat =? '_+_['RV2:Nat,'RV4:Nat] /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 
+	'x4:Nat =? '_+_['RV3:Nat,'RV4:Nat]) /\ 'x1:Nat =? 'h['y:Nat] .
+
+************************************************************************************************************************************************************************
+
+eq p96 = 'x2:Nat =? '_+_['RV2:Nat,'RV3:Nat] /\ 
+	'x3:Nat =? '_+_['RV1:Nat,'RV2:Nat] /\ 'x1:Nat =? 'h['y:Nat] /\ 'x2:Nat =? 'h['y:Nat] .
+
+endm 
+
