@@ -7,7 +7,7 @@ We designed an algorithm that consisting of inference rules to solve unification
 To run the algorithm you will need to have installed Maude, a high performance reflective language. 
 
 ### Install###
-Download and install from this link [Download Maude](http://maude.cs.illinois.edu/w/index.php?title=The_Maude_System).
+Download and install Maude from here [Download Maude](http://maude.cs.illinois.edu/w/index.php?title=The_Maude_System).
 
 ### Instructions to run the program ###
 Download .maude files to a directory. Run the maude on your machine and navigate to directory where the files reside in. 
