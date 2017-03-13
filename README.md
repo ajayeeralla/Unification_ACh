@@ -19,4 +19,4 @@ bound under which we are looking for solutions.
 
 ### Authors ###
 
-* Ajay Kumar Eeralla-(ajay.eeralla@gmail.com, ae266@mail.missouri.edu)
+* **Ajay Kumar Eeralla**-(ajay.eeralla@gmail.com, ae266@mail.missouri.edu)
