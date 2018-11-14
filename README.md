@@ -26,4 +26,4 @@ where `p` is an unification problem and `b` is a bound under which we are lookin
 
 ## Authors 
 
-* **Ajay Kumar Eeralla (ajay.eeralla@gmail.com/ae266@mail.missouri.edu)
+* **Ajay Kumar Eeralla** (ajay.eeralla@gmail.com/ae266@mail.missouri.edu)
