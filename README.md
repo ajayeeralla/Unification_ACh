@@ -3,7 +3,7 @@
 
 We designed an algorithm that consisting of inference rules to solve an unification problem modulo the theory of homomorphism over an Associativity-Commutativity operator.
 
-This work has been presented at the international workshop on unification [UNIF18](http://unif2018.cic.unb.br) organized at Oxford, UK.
+This work has been presented at the international workshop on unification [UNIF18](http://unif2018.cic.unb.br) organized at Oxford University, UK.
 
 
 ## Prerequisites 
