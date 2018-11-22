@@ -5,9 +5,9 @@ We designed an algorithm that consisting of inference rules to solve an unificat
 
 This work has been presented at the international workshop on unification [UNIF18](http://unif2018.cic.unb.br) organized at Oxford University, UK. The paper (two versions) is presented below.
 
-* Ajay Kumar Eeralla, Christopher Lynch. [Bounded ACh Unification](http://unif2018.cic.unb.br/BookletUNIF2018.pdf).
+* Ajay Kumar Eeralla, Christopher Lynch. [Bounded ACh Unification](http://unif2018.cic.unb.br/BookletUNIF2018.pdf) (UNIF informal proceedings).
 
-* Ajay Kumar Eeralla, Christopher Lynch. [Bounded ACh Unification](https://arxiv.org/abs/1811.05602).
+* Ajay Kumar Eeralla, Christopher Lynch. [Bounded ACh Unification](https://arxiv.org/abs/1811.05602) (extended version of the paper).
 
 
 ## Prerequisites 
